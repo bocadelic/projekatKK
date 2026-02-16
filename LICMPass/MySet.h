@@ -14,6 +14,7 @@ public:
     void insert(Value *Val);
     bool contains(Value *Val);
     void clear();
+    std::vector<Value *>& getElements();
 
 private:
     unsigned timestamp;

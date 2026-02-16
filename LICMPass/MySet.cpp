@@ -18,3 +18,10 @@ void MySet::clear() {
     Values.clear();
 }
 
+std::vector<Value *>& MySet::getElements() {
+    // da li treba obrisati Values pre dodavanja???
+    for (auto &Val : SortedSet) {
+        Values.push_back(Val.second);
+    }
+    return Values;
+}

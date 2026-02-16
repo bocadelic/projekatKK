@@ -82,6 +82,38 @@ namespace {
             }
         }
 
+		bool moveInvariants() {
+            std::unordered_map<Value*, Value*> InstructionMap;
+            std::vector<Value* > &CopyingInstructions = InvariantInstructions.getElements();
+
+            Instruction *InstructionCopy, *I;
+
+            for (auto Val : CopyingInstructions){
+                I = dyn_cast<Instruction>(Val);
+                InstructionCopy = I->clone();
+                InstructionCopy->insertBefore(InsertBefore);
+                InstructionMap[I] = InstructionCopy;
+            }
+
+            for (auto Val : CopyingInstructions){
+                I = dyn_cast<Instruction>(Val);
+                InstructionCopy = dyn_cast<Instruction>(InstructionMap[I]);
+
+                for (size_t i = 0; i < InstructionCopy->getNumOperands(); i++) {
+                    if (InstructionMap.find(InstructionCopy->getOperand(i)) != InstructionMap.end()) {
+                        InstructionCopy->setOperand(i, InstructionMap[InstructionCopy->getOperand(i)]);
+                    }
+                }
+                I->replaceAllUsesWith(InstructionMap[I]);
+            }
+
+            for (auto *I : CopyingInstructions) {
+                cast<Instruction>(I)->eraseFromParent();
+           }
+
+            return !CopyingInstructions.empty();
+        }
+
         bool runOnLoop(Loop *L, LPPassManager&) override {
             LoopBasicBlocks = L->getBlocksVector();
             BasicBlock *PreHeader = L->getLoopPreheader();
@@ -91,8 +123,13 @@ namespace {
 
             variableMapping();
             findInvariants();
+			bool changed = moveInvariants();
 
-            return false;
+            VariableMap.clear();
+            InvariantInstructions.clear();
+            UsedVariable.clear();
+
+			return changed;
         }
     };
 }
